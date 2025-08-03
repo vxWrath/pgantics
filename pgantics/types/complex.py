@@ -3,7 +3,7 @@ from functools import cached_property
 from typing import Any, Optional, Type, Union
 
 from ..core.exceptions import InvalidType
-from ..core.registry import _CUSTOM_TYPE_REGISTRY, get_type_class
+from ..core.registry import get_type_class
 from .base import PostgresType, to_postgres_type
 from .primitives import (
     CIDR,
@@ -206,7 +206,7 @@ def is_array_type(value: Union[Type[Any], Any]) -> bool:
     CompositeType = get_type_class('CompositeType')
     EnumType = get_type_class('EnumType')
 
-    all_valid_types = (Array, EnumType, Domain, CompositeType, *_CUSTOM_TYPE_REGISTRY.values(), *ARRAY_TYPES)
+    all_valid_types = (Array, EnumType, Domain, CompositeType, *ARRAY_TYPES)
 
     if inspect.isclass(value):
         return issubclass(value, all_valid_types)

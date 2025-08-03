@@ -181,8 +181,8 @@ class Timestamp(PostgresType):
         name = self.__class__.__name__.upper()
 
         if self.precision is not None:
-            return f"TIMESTAMP({self.precision})"
-        return "TIMESTAMP"
+            return f"{name}({self.precision})"
+        return f"{name}"
 
 class TimestampTZ(Timestamp):
     """Postgres TIMESTAMPTZ type (date and time with time zone)"""

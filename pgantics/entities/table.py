@@ -28,7 +28,7 @@ class Table(PGAnticsModel):
 register_table(Table)
 
 def validate() -> None:
-    """Validate all registered tables and composite types. This should be called after all models are defined."""
+    """Validate all registered tables, composite types, foreign keys, etc. This should be called after all models are defined."""
 
     Table = get_table_class('Table')
 

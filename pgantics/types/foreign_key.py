@@ -74,4 +74,4 @@ class ForeignKey(PostgresType):
         on_delete_str = f" ON DELETE {self.on_delete.value}" if self.on_delete else ""
         on_update_str = f" ON UPDATE {self.on_update.value}" if self.on_update else ""
 
-        return f"FOREIGN KEY {ref_table.Meta.table_name}({self.column}){on_delete_str}{on_update_str}"
+        return f"REFERENCES {ref_table.Meta.table_name}({self.column}){on_delete_str}{on_update_str}"

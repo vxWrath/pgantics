@@ -92,7 +92,9 @@ class PGAnticsModel(BaseModel, metaclass=PGAnticsModelMeta):
         """Retrieve SQL metadata for the model."""
 
         CompositeType = get_type_class('CompositeType')
-        metadata: Dict[str, ColumnMetadata | CompositeColumnMetadata] = {}
+
+        metadata = {x: getattr(cls.Meta, x) for x in dir(cls.Meta) if not x.startswith('_') and not callable(getattr(cls.Meta, x))}
+        columns: Dict[str, ColumnMetadata | CompositeColumnMetadata] = {}
 
         for field_name, field_info in cls.__pgdantic_fields__.items():
             if isinstance(field_info, ColumnInfo):
@@ -102,10 +104,11 @@ class PGAnticsModel(BaseModel, metaclass=PGAnticsModelMeta):
                 if issubclass(meta['type'], CompositeType):
                     meta['type'] = meta['type'].get_sql_metadata()
 
-                metadata[field_name] = meta
+                columns[field_name] = meta
 
+        metadata['columns'] = columns
         return metadata
-    
+
     @classmethod
     def pgdantic_fields(cls) -> Dict[str, Union[ColumnInfo, CompositeColumnInfo]]:
         """Retrieve all fields defined in the model. Call this over `.model_fields` to ensure proper attribute access."""

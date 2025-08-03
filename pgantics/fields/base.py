@@ -21,8 +21,12 @@ class FieldMetadata(TypedDict, total=False):
     type: Union[Type[Any], Any]
 
 class PGFieldInfo(FieldInfo):
-    def __init__(self, *, postgres_type: Union[Type[PostgresType], PostgresType, str] = MISSING, **kwargs: Unpack[_FromFieldInfoInputs]):
-        super().__init__(**kwargs)
+    def __init__(self, *, 
+        postgres_type: Union[Type[PostgresType], PostgresType, str] = MISSING, 
+        pydantic_default: Any = MISSING,
+        **kwargs: Unpack[_FromFieldInfoInputs]
+    ):
+        super().__init__(default=pydantic_default, **kwargs)
         self._postgres_type = postgres_type
         self.__sql_metadata__: FieldMetadata = {}
 
