@@ -3,6 +3,7 @@ from typing import Any, Optional, Sequence, Type, Union, Unpack
 from pydantic.fields import _FromFieldInfoInputs
 
 from ..core.utils import MISSING
+from ..entities.check import Check
 from ..entities.default import Expression, _DefaultValue
 from ..entities.index import Index
 from ..types.base import PostgresType
@@ -19,6 +20,7 @@ class ColumnMetadata(FieldMetadata, total=False):
     index: Optional[Index]
     nullable: bool
     default: _DefaultValue
+    checks: Optional[Sequence[Check]]
 
 class ColumnInfo(PGFieldInfo):
     """A field that represents a column in PostgreSQL."""
@@ -30,6 +32,7 @@ class ColumnInfo(PGFieldInfo):
         index: Optional[Index] = None,
         nullable: bool = MISSING,
         default: _DefaultValue | Sequence[_DefaultValue] = MISSING,
+        checks: Optional[Sequence[Check]] = None,
         pydantic_default: Any = MISSING,
         **pydantic_kwargs: Unpack[_FromFieldInfoInputs]
     ):
@@ -40,6 +43,7 @@ class ColumnInfo(PGFieldInfo):
         self.index = index
         self.unique = unique
         self.nullable = nullable
+        self.checks = checks
 
         if isinstance(default, Sequence):
             self.postgres_default = Expression('{' + ','.join(map(str, default)) + '}')
@@ -68,6 +72,9 @@ class ColumnInfo(PGFieldInfo):
         if self.postgres_default is not MISSING:
             self.__sql_metadata__["default"] = self.postgres_default
 
+        if self.checks:
+            self.__sql_metadata__["checks"] = self.checks
+
     def _set_index_name(self) -> None:
         """Set the index name if it is not already set."""
         if self.index and self.index.name is MISSING:
@@ -81,6 +88,7 @@ def Column(
     index: Optional[Index] = None,
     nullable: bool = MISSING,
     default: _DefaultValue | Sequence[_DefaultValue] = MISSING,
+    checks: Optional[Sequence[Check]] = None,
     pydantic_default: Any = MISSING,
     **pydantic_kwargs: Unpack[_FromFieldInfoInputs]
 ) -> Any:
@@ -106,6 +114,7 @@ def Column(
         index=index,
         nullable=nullable,
         default=default,
+        checks=checks,
         pydantic_default=pydantic_default,
         **pydantic_kwargs
     )
