@@ -18,7 +18,7 @@ class _DefaultValue:
             decimal.Decimal,  # For NUMERIC/DECIMAL columns
             uuid.UUID,        # For UUID columns
             bytes,            # For BYTEA columns
-            list, dict        # For JSON/JSONB columns
+            List[Any], Dict[Any, Any]        # For JSON/JSONB columns
         ], /, *, is_expression: bool = False
     ):
         self.value = value

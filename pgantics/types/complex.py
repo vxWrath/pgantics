@@ -51,7 +51,6 @@ from .primitives import (
 __all__ = (
     "Array",
     "Range",
-    "Domain"
 )
 
 ARRAY_TYPES = ARRAY_TYPES = (
@@ -198,15 +197,12 @@ class Range(PostgresType):
         element_str = str(element)
         return range_mapping.get(element_str, f"{element_str}RANGE")
 
-class Domain(PostgresType):
-    pass
-
 def is_array_type(value: Union[Type[Any], Any]) -> bool:
     """Check if the given type is a PostgreSQL array type."""
     CompositeType = get_type_class('CompositeType')
     EnumType = get_type_class('EnumType')
 
-    all_valid_types = (Array, EnumType, Domain, CompositeType, *ARRAY_TYPES)
+    all_valid_types = (Array, EnumType, CompositeType, *ARRAY_TYPES)
 
     if inspect.isclass(value):
         return issubclass(value, all_valid_types)

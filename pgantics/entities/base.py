@@ -101,6 +101,8 @@ class PGAnticsModel(BaseModel, metaclass=PGAnticsModelMeta):
                 meta: Any = field_info.__sql_metadata__
                 meta['type'] = field_info.postgres_type
 
+                print(meta)
+
                 if issubclass(meta['type'], CompositeType):
                     meta['type'] = meta['type'].get_sql_metadata()
 

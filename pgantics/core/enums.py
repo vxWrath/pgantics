@@ -3,7 +3,10 @@ from enum import Enum
 __all__ = (
     "Action",
     "RelationshipType",
-    "IntervalField"
+    "IntervalField",
+    "IndexMethod",
+    "Order",
+    "NullsOrder",
 )
 
 class Action(str, Enum):
@@ -33,3 +36,19 @@ class IntervalField(str, Enum):
     HOUR_TO_MINUTE = "HOUR_TO_MINUTE"
     HOUR_TO_SECOND = "HOUR_TO_SECOND"
     MINUTE_TO_SECOND = "MINUTE_TO_SECOND"
+
+class IndexMethod(str, Enum):
+    BTREE = "btree"
+    HASH = "hash"
+    GIST = "gist"
+    SPGIST = "spgist"
+    GIN = "gin"
+    BRIN = "brin"
+
+class Order(str, Enum):
+    ASC = "ASC"
+    DESC = "DESC"
+
+class NullsOrder(str, Enum):
+    FIRST = "FIRST"
+    LAST = "LAST"
