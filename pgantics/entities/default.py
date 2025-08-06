@@ -9,7 +9,7 @@ from ..types.base import PostgresType
 from ..types.primitives import JSON, JSONB
 
 
-class _DefaultValue:
+class DefaultValue:
     """Postgres DEFAULT constraint."""
 
     def __init__(self, value: Union[
@@ -57,56 +57,56 @@ class _DefaultValue:
         """Convert the default value to a SQL string."""
         return f"DEFAULT {str(self)}"
 
-def Null() -> _DefaultValue:
+def Null() -> DefaultValue:
     """Postgres DEFAULT constraint for NULL values."""
-    return _DefaultValue(None, is_expression=False)
+    return DefaultValue(None, is_expression=False)
 
-def String(value: str) -> _DefaultValue:
+def String(value: str) -> DefaultValue:
     """Postgres DEFAULT constraint for string values."""
-    return _DefaultValue(value, is_expression=False)
+    return DefaultValue(value, is_expression=False)
 
-def Bool(value: bool) -> _DefaultValue:
+def Bool(value: bool) -> DefaultValue:
     """Postgres DEFAULT constraint for boolean values."""
-    return _DefaultValue(value, is_expression=False)
+    return DefaultValue(value, is_expression=False)
 
-def Integer(value: int) -> _DefaultValue:
+def Integer(value: int) -> DefaultValue:
     """Postgres DEFAULT constraint for integer values."""
-    return _DefaultValue(value, is_expression=False)
+    return DefaultValue(value, is_expression=False)
 
-def Float(value: float) -> _DefaultValue:
+def Float(value: float) -> DefaultValue:
     """Postgres DEFAULT constraint for float values."""
-    return _DefaultValue(value, is_expression=False)
+    return DefaultValue(value, is_expression=False)
 
-def Decimal(value: decimal.Decimal) -> _DefaultValue:
+def Decimal(value: decimal.Decimal) -> DefaultValue:
     """Postgres DEFAULT constraint for decimal values."""
-    return _DefaultValue(value, is_expression=False)
+    return DefaultValue(value, is_expression=False)
 
-def Bytes(value: Union[bytes, bytearray, memoryview]) -> _DefaultValue:
+def Bytes(value: Union[bytes, bytearray, memoryview]) -> DefaultValue:
     """Postgres DEFAULT constraint for byte values."""
     if isinstance(value, (bytearray, memoryview)):
         value = bytes(value)
-    return _DefaultValue(value, is_expression=False)
+    return DefaultValue(value, is_expression=False)
 
-def Expression(value: str) -> _DefaultValue:
+def Expression(value: str) -> DefaultValue:
     """Postgres DEFAULT constraint for expression values."""
-    return _DefaultValue(value, is_expression=True)
+    return DefaultValue(value, is_expression=True)
 
-def Json(value: Union[List[Any], Dict[Any, Any]]) -> _DefaultValue:
+def Json(value: Union[List[Any], Dict[Any, Any]]) -> DefaultValue:
     """Postgres DEFAULT constraint for JSON values."""
     return Cast(value, JSON())
 
-def JsonB(value: Union[List[Any], Dict[Any, Any]]) -> _DefaultValue:
+def JsonB(value: Union[List[Any], Dict[Any, Any]]) -> DefaultValue:
     """Postgres DEFAULT constraint for JSONB values."""
     return Cast(value, JSONB())
 
-def Array(*values: Any, cast: Optional[Union[Type[PostgresType], PostgresType]]=None) -> _DefaultValue:
+def Array(*values: Any, cast: Optional[Union[Type[PostgresType], PostgresType]]=None) -> DefaultValue:
     """Postgres DEFAULT constraint for array values."""
     if not values:
         return Expression("'{}'")
     
     formatted_values = []
     for v in values:
-        if isinstance(v, _DefaultValue):
+        if isinstance(v, DefaultValue):
             formatted_values.append(str(v))
         elif isinstance(v, str):
             formatted_values.append(f"'{v.replace("'", "''")}'")
@@ -121,40 +121,40 @@ def Array(*values: Any, cast: Optional[Union[Type[PostgresType], PostgresType]]=
         return Cast(array_str, cast)
     return Expression(f"'{array_str}'")
 
-def Now() -> _DefaultValue:
+def Now() -> DefaultValue:
     """Postgres DEFAULT constraint for current time."""
     return Expression("NOW()")
 
-def CurrentTimestamp(timezone: Optional[str] = None) -> _DefaultValue:
+def CurrentTimestamp(timezone: Optional[str] = None) -> DefaultValue:
     """Postgres DEFAULT constraint for current timestamp."""
     if timezone:
         return Expression(f"CURRENT_TIMESTAMP AT TIME ZONE '{timezone}'")
     return Expression("CURRENT_TIMESTAMP")
 
-def CurrentTime(timezone: Optional[str] = None) -> _DefaultValue:
+def CurrentTime(timezone: Optional[str] = None) -> DefaultValue:
     """Postgres DEFAULT constraint for current time."""
     if timezone:
         return Expression(f"CURRENT_TIME AT TIME ZONE '{timezone}'")
     return Expression("CURRENT_TIME")
 
-def CurrentDate() -> _DefaultValue:
+def CurrentDate() -> DefaultValue:
     """Postgres DEFAULT constraint for current date."""
     return Expression("CURRENT_DATE")
 
-def UUID4() -> _DefaultValue:
+def UUID4() -> DefaultValue:
     """Postgres DEFAULT constraint for a new UUID."""
     return Expression("gen_random_uuid()")
 
-def NextVal(sequence_name: str) -> _DefaultValue:
+def NextVal(sequence_name: str) -> DefaultValue:
     """Postgres DEFAULT constraint for the next value of a sequence."""
     return Expression(f"nextval('{sequence_name}')")
 
-def Random(multiplier: Optional[float] = None) -> _DefaultValue:
+def Random(multiplier: Optional[float] = None) -> DefaultValue:
     if multiplier is not None:
         return Expression(f"RANDOM() * {multiplier}")
     return Expression("RANDOM()")
 
-def Cast(value: Union[_DefaultValue, Any], postgres_type: Union[Type[PostgresType], PostgresType]) -> _DefaultValue:
+def Cast(value: Union[DefaultValue, Any], postgres_type: Union[Type[PostgresType], PostgresType]) -> DefaultValue:
     """Postgres DEFAULT constraint with type casting."""
     CompositeType = get_type_class("CompositeType")
 
@@ -165,7 +165,7 @@ def Cast(value: Union[_DefaultValue, Any], postgres_type: Union[Type[PostgresTyp
 
     cast_type = str(postgres_type)
 
-    if isinstance(value, _DefaultValue):
+    if isinstance(value, DefaultValue):
         return Expression(f"{str(value)}::{cast_type}")
     elif value is None:
         return Expression(f"NULL::{cast_type}")
@@ -176,14 +176,14 @@ def Cast(value: Union[_DefaultValue, Any], postgres_type: Union[Type[PostgresTyp
     else:
         return Expression(f"{value}::{cast_type}")
     
-def Coalesce(*values: Union[_DefaultValue, Any]) -> _DefaultValue:
+def Coalesce(*values: Union[DefaultValue, Any]) -> DefaultValue:
     """Postgres COALESCE function."""
     if not values:
         raise ValueError("At least one value must be provided to COALESCE.")
     
     formatted_values = []
     for v in values:
-        if isinstance(v, _DefaultValue):
+        if isinstance(v, DefaultValue):
             formatted_values.append(str(v))
         elif v is None:
             formatted_values.append("NULL")
@@ -192,23 +192,23 @@ def Coalesce(*values: Union[_DefaultValue, Any]) -> _DefaultValue:
     
     return Expression(f"COALESCE({', '.join(formatted_values)})")
     
-def Ceil(value: Union[_DefaultValue, Any]) -> _DefaultValue:
+def Ceil(value: Union[DefaultValue, Any]) -> DefaultValue:
     """Postgres CEIL function."""
-    if isinstance(value, _DefaultValue):
+    if isinstance(value, DefaultValue):
         return Expression(f"CEIL({str(value)})")
     else:
         return Expression(f"CEIL({value})")
 
-def Floor(value: Union[_DefaultValue, Any]) -> _DefaultValue:
+def Floor(value: Union[DefaultValue, Any]) -> DefaultValue:
     """Postgres FLOOR function."""
-    if isinstance(value, _DefaultValue):
+    if isinstance(value, DefaultValue):
         return Expression(f"FLOOR({str(value)})")
     else:
         return Expression(f"FLOOR({value})")
 
-def Round(value: Union[_DefaultValue, Any], precision: int = 0) -> _DefaultValue:
+def Round(value: Union[DefaultValue, Any], precision: int = 0) -> DefaultValue:
     """Postgres ROUND function."""
-    if isinstance(value, _DefaultValue):
+    if isinstance(value, DefaultValue):
         return Expression(f"ROUND({str(value)}, {precision})")
     else:
         return Expression(f"ROUND({value}, {precision})")

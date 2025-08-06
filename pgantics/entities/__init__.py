@@ -5,3 +5,4 @@ from .composite import *
 from .enum import *
 from .index import *
 from .table import *
+from .unique import *

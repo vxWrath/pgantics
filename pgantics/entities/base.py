@@ -5,14 +5,7 @@ from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass
 
 from ..core.exceptions import MetaClassError, MissingAnnotation, UnsupportedType
-from ..core.registry import get_type_class
-from ..fields.column import (
-    ColumnInfo,
-    ColumnMetadata,
-    CompositeColumnInfo,
-    CompositeColumnMetadata,
-)
-from ..types.foreign_key import ForeignKey
+from ..fields.column import ColumnInfo, CompositeColumnInfo
 
 __all__ = (
     "PGAnticsModel",
@@ -88,40 +81,12 @@ class PGAnticsModel(BaseModel, metaclass=PGAnticsModelMeta):
 
     @classmethod
     @cache
-    def get_sql_metadata(cls) -> Dict[str, Union[ColumnMetadata, CompositeColumnMetadata]]:
+    def get_sql_metadata(cls) -> Dict[str, Any]:
         """Retrieve SQL metadata for the model."""
-
-        CompositeType = get_type_class('CompositeType')
-
-        metadata = {x: getattr(cls.Meta, x) for x in dir(cls.Meta) if not x.startswith('_') and not callable(getattr(cls.Meta, x))}
-        columns: Dict[str, ColumnMetadata | CompositeColumnMetadata] = {}
-
-        for field_name, field_info in cls.__pgdantic_fields__.items():
-            if isinstance(field_info, ColumnInfo):
-                meta: Any = field_info.__sql_metadata__
-                meta['type'] = field_info.postgres_type
-
-                print(meta)
-
-                if issubclass(meta['type'], CompositeType):
-                    meta['type'] = meta['type'].get_sql_metadata()
-
-                columns[field_name] = meta
-
-        metadata['columns'] = columns
-        return metadata
+        raise NotImplementedError("Subclasses must implement 'get_sql_metadata' method to return SQL metadata.")
 
     @classmethod
     def pgdantic_fields(cls) -> Dict[str, Union[ColumnInfo, CompositeColumnInfo]]:
         """Retrieve all fields defined in the model. Call this over `.model_fields` to ensure proper attribute access."""
 
         return cls.__pgdantic_fields__
-    
-    @classmethod
-    def get_foreign_keys(cls) -> Dict[str, ColumnInfo]:
-        """Retrieve foreign keys defined in the model."""
-
-        return {
-            name: field for name, field in cls.__pgdantic_fields__.items()
-            if isinstance(field, ColumnInfo) and isinstance(field.postgres_type, ForeignKey)
-        }

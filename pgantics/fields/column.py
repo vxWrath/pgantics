@@ -2,10 +2,12 @@ from typing import Any, Optional, Sequence, Type, Union, Unpack
 
 from pydantic.fields import _FromFieldInfoInputs
 
+from ..core.registry import register_index
 from ..core.utils import MISSING
 from ..entities.check import Check
-from ..entities.default import Expression, _DefaultValue
+from ..entities.default import DefaultValue, Expression
 from ..entities.index import Index
+from ..entities.unique import Unique
 from ..types.base import PostgresType
 from .base import FieldMetadata, PGFieldInfo
 
@@ -16,10 +18,10 @@ __all__ = (
 
 class ColumnMetadata(FieldMetadata, total=False):
     primary_key: bool
-    unique: bool
+    unique: Union[bool, Unique]
     index: Optional[Index]
     nullable: bool
-    default: _DefaultValue
+    default: DefaultValue
     checks: Optional[Sequence[Check]]
 
 class ColumnInfo(PGFieldInfo):
@@ -28,10 +30,10 @@ class ColumnInfo(PGFieldInfo):
     def __init__(self, *,
         postgres_type: Union[Type[PostgresType], PostgresType, str] = MISSING,
         primary_key: bool = False,
-        unique: bool = False,
+        unique: Union[bool, Unique] = False,
         index: Optional[Index] = None,
         nullable: bool = MISSING,
-        default: _DefaultValue | Sequence[_DefaultValue] = MISSING,
+        default: DefaultValue | Sequence[DefaultValue] = MISSING,
         checks: Optional[Sequence[Check]] = None,
         pydantic_default: Any = MISSING,
         **pydantic_kwargs: Unpack[_FromFieldInfoInputs]
@@ -76,18 +78,18 @@ class ColumnInfo(PGFieldInfo):
             self.__sql_metadata__["checks"] = self.checks
 
     def _set_index_name(self) -> None:
-        """Set the index name if it is not already set."""
         if self.index and self.index.name is MISSING:
             self.index.name = f"idx_{self._source_class.Meta.table_name}_{self._source_field_name}"
+            register_index(self.index)
 
 def Column(
     postgres_type: Union[Type[PostgresType], PostgresType, str] = MISSING,
     /, *,
     primary_key: bool = False,
-    unique: bool = False,
+    unique: Union[bool, Unique] = False,
     index: Optional[Index] = None,
     nullable: bool = MISSING,
-    default: _DefaultValue | Sequence[_DefaultValue] = MISSING,
+    default: DefaultValue | Sequence[DefaultValue] = MISSING,
     checks: Optional[Sequence[Check]] = None,
     pydantic_default: Any = MISSING,
     **pydantic_kwargs: Unpack[_FromFieldInfoInputs]
@@ -97,7 +99,7 @@ def Column(
     Args:
         postgres_type: The PostgreSQL type for the column.
         primary_key: Whether this column is a primary key.
-        unique: Whether this column should have a unique constraint.
+        unique: Whether this column should have a unique constraint. If you want to use a composite unique constraint, pass a Unique instance.
         index: Optional index for this column.
         nullable: Whether this column is nullable.
         default: The default value for this column.

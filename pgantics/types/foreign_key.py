@@ -19,6 +19,15 @@ class ForeignKey(PostgresType):
         on_delete: Optional[Action] = None, 
         on_update: Optional[Action] = None
     ):
+        """Initialize a ForeignKey type.
+        
+        Args:
+            reference (Union[Type['Table'], str]): The reference to the foreign key. This can be an actual table class or a table name, then a column name.
+                Example: `ForeignKey(User, 'id')` or `ForeignKey("users.id")`.
+            on_delete (Optional[Action]): Action to take on delete. Defaults to None.
+            on_update (Optional[Action]): Action to take on update. Defaults to None.
+        """
+
         if not reference:
             raise ForeignKeyReferenceError("You must provide a reference")
 
@@ -31,7 +40,7 @@ class ForeignKey(PostgresType):
             ref = ref.split('.')
 
             if len(ref) != 2:
-                raise ForeignKeyReferenceError(f"Foreign key reference must be in the format '<table or class>.column', got '{reference}'.")
+                raise ForeignKeyReferenceError(f"Foreign key reference must be in the format '<table-name or class>.column', got '{reference}'.")
             
             table, column = tuple(ref)
 

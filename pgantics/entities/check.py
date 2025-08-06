@@ -39,19 +39,19 @@ class Check:
         return f"Check(condition={self.condition!r})"
     
 def check_positive(column: str, *, name: Optional[str] = None) -> Check:
-    """Check that a column is positive."""
+    """Helper function that creates a check where a column must be positive."""
     return Check(f"{column} > 0", name=name)
 
 def check_non_negative(column: str, *, name: Optional[str] = None) -> Check:
-    """Check that a column is non-negative."""
+    """Helper function that creates a check where a column must be non-negative."""
     return Check(f"{column} >= 0", name=name)
 
 def check_range(column: str, min_val: Any, max_val: Any, *, name: Optional[str] = None) -> Check:
-    """Check that a column is within a range."""
+    """Helper function that creates a check where a column must be within a range."""
     return Check(f"{column} >= {min_val} AND {column} <= {max_val}", name=name)
 
 def check_length(column: str, min_len: Optional[int] = None, max_len: Optional[int] = None, *, name: Optional[str] = None) -> Check:
-    """Check string length constraints."""
+    """Helper function that creates a check where a column must have a specific length."""
     conditions = []
     if min_len is not None:
         conditions.append(f"LENGTH({column}) >= {min_len}")
@@ -64,7 +64,7 @@ def check_length(column: str, min_len: Optional[int] = None, max_len: Optional[i
     return Check(" AND ".join(conditions), name=name)
 
 def check_in(column: str, values: Iterable[Any], *, name: Optional[str] = None) -> Check:
-    """Check that column value is in a list of values."""
+    """Helper function that creates a check where a column must be in a list of values."""
 
     formatted_values: List[str] = []
     for v in values:
@@ -79,15 +79,15 @@ def check_in(column: str, values: Iterable[Any], *, name: Optional[str] = None) 
     return Check(f"{column} IN ({values_str})", name=name)
 
 def check_not_empty(column: str, *, name: Optional[str] = None) -> Check:
-    """Check that a string column is not empty."""
+    """Helper function that creates a check where a string column must not be empty."""
     return Check(f"{column} != ''", name=name)
 
 def check_email_format(column: str, *, name: Optional[str] = None) -> Check:
-    """Basic email format check."""
+    """Helper function that creates a check for basic email format."""
     return Check(f"{column} ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{{2,}}$'", name=name)
 
 def check_regex(column: str, pattern: Union[str, re.Pattern[AnyStr]], *, name: Optional[str] = None, case_sensitive: bool = True) -> Check:
-    """Check that column matches a regex pattern."""
+    """Helper function that creates a check that a column matches a regex pattern."""
     operator = "~" if case_sensitive else "~*"
 
     if isinstance(pattern, re.Pattern):

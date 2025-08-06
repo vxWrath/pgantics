@@ -10,7 +10,7 @@ from ..entities.check import (
     check_positive,
     check_range,
 )
-from ..entities.default import _DefaultValue
+from ..entities.default import DefaultValue
 from .base import PostgresType, to_postgres_type
 from .primitives import Decimal, Integer, Text
 
@@ -24,7 +24,7 @@ class Domain(PostgresType):
         name: str,
         *,
         nullable: bool = True,
-        default: Optional[Union[str, _DefaultValue]] = None,
+        default: Optional[Union[str, DefaultValue]] = None,
         checks: Optional[Iterable[Check]] = None,
         collation: Optional[str] = None,
     ):
@@ -41,7 +41,7 @@ class Domain(PostgresType):
         """
 
         if isinstance(default, str):
-            default = _DefaultValue(default, is_expression=True)
+            default = DefaultValue(default, is_expression=True)
 
         self._base = base
         self.name = name

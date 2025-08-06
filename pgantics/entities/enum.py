@@ -9,12 +9,12 @@ __all__ = (
 )
 
 class EnumTypeMeta(enum.EnumMeta):
-    """Meta class for EnumType to ensure it has a Meta class defined."""
-
     def __str__(cls) -> str:
         return cls.Meta.type_name # type: ignore
 
 class EnumType(PostgresType, enum.StrEnum, metaclass=EnumTypeMeta):
+    """A PostgreSQL enum type, representing a user-defined enumeration."""
+    
     class Meta:
         type_name: str
 

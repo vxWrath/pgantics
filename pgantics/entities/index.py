@@ -13,6 +13,9 @@ __all__ = (
     "BrinIndex",
     "BTreeIndex",
     "HashIndex",
+    "PartialIndex",
+    "ExpressionIndex",
+    "CoveringIndex",
 )
 
 class IndexColumn:
@@ -72,23 +75,25 @@ class IndexColumn:
             return f"IndexColumn(expression={self.expression!r})"
         return f"IndexColumn(column={self.name!r})"
     
-class _IndexOptions(TypedDict, total=False):
+class _BaseIndexOptions(TypedDict, total=False):
     """TypedDict for index options."""
     
     unique: bool
-    where: Optional[str]
-    include: Optional[List[str]]
     tablespace: Optional[str]
     with_options: Optional[Dict[str, Any]]
     concurrently: bool
+
+class _IndexOptions(_BaseIndexOptions, total=False):
+    columns: Optional[Iterable[Union[str, IndexColumn]]]
+    where: Optional[str]
+    include: Optional[List[str]]
 
 class Index:
     """PostgreSQL index type."""
 
     def __init__(self,
-        columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
-        /,
         name: str = MISSING,
+        /, *,
         method: IndexMethod = IndexMethod.BTREE,
         **kwargs: Unpack[_IndexOptions]
     ):
@@ -118,7 +123,7 @@ class Index:
 
         self.columns: List[IndexColumn] = []
 
-        if columns:
+        if (columns := kwargs.get("columns")) is not None:
             for column in columns:
                 if isinstance(column, IndexColumn):
                     self.columns.append(column)
@@ -133,8 +138,9 @@ class Index:
             self.name = f"idx_{'_'.join(c.name for c in self.columns)}"
         else:
             self.name = MISSING
-            
-        register_index(self)
+        
+        if self.name is not MISSING:
+            register_index(self)
 
     def __str__(self) -> str:
         return self.name
@@ -143,9 +149,8 @@ class Index:
         return f"Index(name={self.name!r}, columns={[c.name for c in self.columns]!r})"
     
 def BTreeIndex(
-    columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
-    /,
     name: str = MISSING,
+    /,
     **kwargs: Unpack[_IndexOptions]
 ) -> Index:
     """
@@ -164,16 +169,14 @@ def BTreeIndex(
     kwargs.pop("method", None)  # Ensure method is not set for BTreeIndex
     
     return Index(
-        columns,
-        name=name,
+        name,
         method=IndexMethod.BTREE,
         **kwargs
     )
 
 def HashIndex(
-    columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
-    /,
     name: str = MISSING,
+    /,
     **kwargs: Unpack[_IndexOptions]
 ) -> Index:
     """
@@ -190,18 +193,16 @@ def HashIndex(
         concurrently: Whether to create the index concurrently
     """
     kwargs.pop("method", None)  # Ensure method is not set for HashIndex
-    
+
     return Index(
-        columns,
-        name=name,
+        name,
         method=IndexMethod.HASH,
         **kwargs
     )
 
 def GistIndex(
-    columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
-    /,
     name: str = MISSING,
+    /,
     **kwargs: Unpack[_IndexOptions]
 ) -> Index:
     """
@@ -220,16 +221,14 @@ def GistIndex(
     kwargs.pop("method", None)  # Ensure method is not set for GistIndex
     
     return Index(
-        columns,
-        name=name,
+        name,
         method=IndexMethod.GIST,
         **kwargs
     )
 
 def SpGistIndex(
-    columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
-    /,
     name: str = MISSING,
+    /,
     **kwargs: Unpack[_IndexOptions]
 ) -> Index:
     """
@@ -248,16 +247,14 @@ def SpGistIndex(
     kwargs.pop("method", None)  # Ensure method is not set for SpGistIndex
     
     return Index(
-        columns,
-        name=name,
+        name,
         method=IndexMethod.SPGIST,
         **kwargs
     )
 
 def GinIndex(
-    columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
-    /,
     name: str = MISSING,
+    /,
     **kwargs: Unpack[_IndexOptions]
 ) -> Index:
     """
@@ -276,16 +273,14 @@ def GinIndex(
     kwargs.pop("method", None)  # Ensure method is not set for GinIndex
     
     return Index(
-        columns,
-        name=name,
+        name,
         method=IndexMethod.GIN,
         **kwargs
     )
 
 def BrinIndex(
-    columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
-    /,
     name: str = MISSING,
+    /,
     **kwargs: Unpack[_IndexOptions]
 ) -> Index:
     """
@@ -304,8 +299,101 @@ def BrinIndex(
     kwargs.pop("method", None)  # Ensure method is not set for BrinIndex
     
     return Index(
-        columns,
-        name=name,
+        name,
         method=IndexMethod.BRIN,
+        **kwargs
+    )
+
+def PartialIndex(
+    name: str = MISSING,
+    /, *,
+    where: str,
+    method: IndexMethod = IndexMethod.BTREE,
+    columns: Optional[Iterable[Union[str, IndexColumn]]] = None,
+    include: Optional[List[str]] = None,
+    **kwargs: Unpack[_BaseIndexOptions]
+) -> Index:
+    """
+    Create a partial index.
+    
+    Args:
+        columns: List of columns to index
+        name: Optional index name
+        unique: Whether the index is unique
+        where: Optional partial index condition
+        include: Optional list of included columns
+        tablespace: Optional tablespace for the index
+        with_options: Additional options for the index
+        concurrently: Whether to create the index concurrently
+    """
+    return Index(
+        name,
+        method=method,
+        where=where,
+        include=include,
+        columns=columns,
+        **kwargs
+    )
+
+def ExpressionIndex(
+    name: str = MISSING,
+    /, *,
+    expressions: Iterable[str],
+    method: IndexMethod = IndexMethod.BTREE,
+    include: Optional[List[str]] = None,
+    where: Optional[str] = None,
+    **kwargs: Unpack[_BaseIndexOptions]
+) -> Index:
+    """
+    Create an expression index.
+    
+    Args:
+        name: Optional index name
+        expression: Expression to index
+        method: Index method (default: BTREE)
+        unique: Whether the index is unique
+        tablespace: Optional tablespace for the index
+        with_options: Additional options for the index
+        concurrently: Whether to create the index concurrently
+    """
+    columns = [IndexColumn(expr, expression=expr) for expr in expressions]
+
+    return Index(
+        name,
+        method=method,
+        columns=columns,
+        include=include,
+        where=where,
+        **kwargs
+    )
+
+def CoveringIndex(
+    name: str = MISSING,
+    /, *,
+    include: List[str],
+    where: str,
+    columns: Iterable[Union[str, IndexColumn]],
+    method: IndexMethod = IndexMethod.BTREE,
+    **kwargs: Unpack[_BaseIndexOptions]
+) -> Index:
+    """
+    Create a covering index.
+    
+    Args:
+        name: Optional index name
+        columns: List of columns to index
+        include: Optional list of included columns
+        method: Index method (default: BTREE)
+        unique: Whether the index is unique
+        tablespace: Optional tablespace for the index
+        with_options: Additional options for the index
+        concurrently: Whether to create the index concurrently
+    """
+    return Index(
+        name,
+        method=method,
+        columns=columns,
+        include=include,
+        where=where,
         **kwargs
     )
