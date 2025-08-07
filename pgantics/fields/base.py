@@ -25,8 +25,13 @@ class PGFieldInfo(FieldInfo):
         postgres_type: Union[Type[PostgresType], PostgresType, str] = MISSING, 
         pydantic_default: Any = MISSING,
         **kwargs: Unpack[_FromFieldInfoInputs]
-    ):
-        super().__init__(default=pydantic_default, **kwargs)
+    ):  
+        if pydantic_default is MISSING:
+            super().__init__(**kwargs)
+        if pydantic_default is MISSING:
+            super().__init__(**kwargs)
+        else:
+            super().__init__(default=pydantic_default, **kwargs)
         self._postgres_type = postgres_type
         self.__sql_metadata__: FieldMetadata = {}
 

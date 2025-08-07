@@ -8,6 +8,8 @@ __all__ = (
     "Order",
     "NullsOrder",
     "PartitionStrategy",
+    "Operator",
+    "JoinType",
 )
 
 class Action(str, Enum):
@@ -72,3 +74,29 @@ class PartitionStrategy(str, Enum):
     RANGE = "RANGE"
     LIST = "LIST" 
     HASH = "HASH"
+
+class Operator(str, Enum):
+    EQ = "="
+    NEQ = "!="
+    LT = "<"
+    LTE = "<="
+    GT = ">"
+    GTE = ">="
+
+    LIKE = "LIKE"
+    ILIKE = "ILIKE"
+    IN = "IN"
+    NOT_IN = "NOT IN"
+    IS_NULL = "IS NULL"
+    IS_NOT_NULL = "IS NOT NULL"
+
+    OR = "OR"
+    AND = "AND"
+
+class JoinType(str, Enum):
+    INNER = "INNER JOIN"
+    LEFT = "LEFT JOIN"
+    RIGHT = "RIGHT JOIN"
+    FULL = "FULL OUTER JOIN"
+    CROSS = "CROSS JOIN"
+    NATURAL = "NATURAL JOIN"

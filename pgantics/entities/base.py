@@ -44,8 +44,16 @@ class PGAnticsModelMeta(ModelMetaclass):
     
     def __repr__(self) -> str:
         if hasattr(self, '__entity_name__'):
-            return f"<class '{self.__entity_name__}({self.__name__})'>" # type: ignore
+            return f"<class '{self.__entity_name__}({self.__name__})'>"
         return super().__repr__()
+    
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return super().__getattribute__(name)
+        except AttributeError:
+            if name in self.__pgdantic_fields__:
+                return self.__pgdantic_fields__[name]
+            raise
 
 class PGAnticsModel(BaseModel, metaclass=PGAnticsModelMeta):
     __pgdantic_fields__: Dict[str, Union[ColumnInfo, CompositeColumnInfo]] = {}

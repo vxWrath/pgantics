@@ -53,7 +53,7 @@ class DefaultValue:
             return f"<DefaultValue expression={self.value!r}>"
         return f"<DefaultValue value={self.value!r}>"
         
-    def to_sql(self) -> str:
+    def build(self) -> str:
         """Convert the default value to a SQL string."""
         return f"DEFAULT {str(self)}"
 

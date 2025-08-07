@@ -9,6 +9,9 @@ from ..core.registry import (
     register_table,
 )
 from ..fields.column import ColumnInfo, CompositeColumnInfo
+from ..query.insert import InsertQuery
+from ..query.select import SelectQuery
+from ..query.update import UpdateQuery
 from ..types.complex import Array
 from ..types.foreign_key import ForeignKey
 from .base import PGAnticsModel
@@ -128,6 +131,40 @@ class Table(PGAnticsModel):
             name: field for name, field in cls.__pgdantic_fields__.items()
             if isinstance(field, ColumnInfo) and isinstance(field.postgres_type, ForeignKey)
         }
+    
+    @classmethod
+    def select(cls, *fields: Union[str, Any]) -> 'SelectQuery':
+        """Start a SELECT query"""
+        query = SelectQuery(cls)
+        
+        for field in fields:
+            if isinstance(field, ColumnInfo):
+                table = field._source_class
+                field = field._source_field_name
+            elif isinstance(field, str):
+                table = cls
+            else:
+                raise ValidationError(f"Invalid field type: {type(field)}. Must be a string or ColumnInfo.")
+
+            if field not in table.__pgdantic_fields__:
+                raise ValidationError(f"Field '{field}' does not exist in table '{table.__name__}'.")
+            
+            query.add_select_field(field)
+
+        return query
+    
+    def insert(self, *columns: Union[str, Any]) -> 'InsertQuery':
+        """Start an INSERT query"""
+        return InsertQuery(self).values(*columns)
+
+    def update(self) -> 'UpdateQuery':
+        """Start an UPDATE query"""
+        return UpdateQuery(self)
+
+    #@classmethod
+    #def delete(cls) -> 'DeleteQuery':
+    #    """Start a DELETE query"""
+    #    return DeleteQuery(cls)
 
 register_table(Table)
 

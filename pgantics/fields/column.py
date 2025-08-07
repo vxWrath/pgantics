@@ -1,13 +1,15 @@
-from typing import Any, Optional, Sequence, Type, Union, Unpack
+from typing import Any, Iterable, Optional, Sequence, Type, Union, Unpack
 
 from pydantic.fields import _FromFieldInfoInputs
 
+from ..core.enums import Operator
 from ..core.registry import register_index
 from ..core.utils import MISSING
 from ..entities.check import Check
 from ..entities.default import DefaultValue, Expression
 from ..entities.index import Index
 from ..entities.unique import Unique
+from ..query.conditions import Condition
 from ..types.base import PostgresType
 from .base import FieldMetadata, PGFieldInfo
 
@@ -81,6 +83,39 @@ class ColumnInfo(PGFieldInfo):
         if self.index and self.index.name is MISSING:
             self.index.name = f"idx_{self._source_class.Meta.table_name}_{self._source_field_name}"
             register_index(self.index)
+
+    def __eq__(self, other) -> 'Condition':
+        return Condition(self, Operator.EQ, other)
+
+    def __ne__(self, other) -> 'Condition':
+        return Condition(self, Operator.NEQ, other)
+
+    def __lt__(self, other) -> 'Condition':
+        return Condition(self, Operator.LT, other)
+
+    def __gt__(self, other) -> 'Condition':
+        return Condition(self, Operator.GT, other)
+
+    def like(self, pattern: str) -> 'Condition':
+        return Condition(self, Operator.LIKE, pattern)
+
+    def ilike(self, pattern: str) -> 'Condition':
+        return Condition(self, Operator.ILIKE, pattern)
+
+    def in_(self, values: Iterable[Any]) -> 'Condition':
+        return Condition(self, Operator.IN, values)
+
+    def not_in_(self, values: Iterable[Any]) -> 'Condition':
+        return Condition(self, Operator.NOT_IN, values)
+
+    def is_null(self) -> 'Condition':
+        return Condition(self, Operator.IS_NULL, None)
+    
+    def is_not_null(self) -> 'Condition':
+        return Condition(self, Operator.IS_NOT_NULL, None)
+    
+    def __str__(self) -> str:
+        return f"{self._source_class.Meta.table_name}.{self._source_field_name}"
 
 def Column(
     postgres_type: Union[Type[PostgresType], PostgresType, str] = MISSING,
