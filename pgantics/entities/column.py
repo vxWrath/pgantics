@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Type, Union, Unpack
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Type, Union, Unpack
 
 from pydantic.fields import FieldInfo, _FromFieldInfoInputs
 
@@ -40,6 +40,9 @@ class ColumnInfo[T](pganticsFieldInfo, Expression):
 
         if primary_key:
             self.sql_data['primary_key'] = True
+
+    def build(self) -> Tuple[str, List[Any]]:
+        return f"{self._source_table.Meta.table_name}.{self._source_field}", []
     
     def __str__(self) -> str:
         return f"{self._source_table.Meta.table_name}.{self._source_field}"

@@ -15,7 +15,7 @@ from pydantic._internal._model_construction import ModelMetaclass
 from ..query.select import Select
 from ..registry import TABLE_REGISTRY
 from .column import ColumnInfo
-from .expression import Expression
+from .expression import BaseExpression
 from .mapped import Mapped
 
 __all__ = ["Table"]
@@ -123,7 +123,7 @@ class Table(BaseModel, metaclass=TableMeta):
         table_name: str
 
     @classmethod
-    def select(cls, *columns: Union[str, Expression]) -> Select:
+    def select(cls, *columns: Union[str, BaseExpression]) -> Select:
         query = Select(cls)
         query.select(*columns)
         return query
