@@ -2,10 +2,14 @@ from enum import StrEnum
 
 __all__ = [
     "Operator",
-    "JoinType"
+    "BinaryOperator",
+    "JoinType",
+    "Order"
 ]
 
 class Operator(StrEnum):
+    """SQL comparison and logical operators."""
+
     EQ = "="
     NEQ = "!="
     LT = "<"
@@ -19,14 +23,44 @@ class Operator(StrEnum):
     NOT_IN = "NOT IN"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
+    BETWEEN = "BETWEEN"
+    NOT_BETWEEN = "NOT BETWEEN"
 
     OR = "OR"
     AND = "AND"
 
+class BinaryOperator(StrEnum):
+    """SQL arithmetic and binary operators."""
+
+    ADD = "+"
+    SUBTRACT = "-"
+    MULTIPLY = "*"
+    DIVIDE = "/"
+    MODULUS = "%"
+    POWER = "^"
+    
+    # Bitwise operators
+    BITWISE_AND = "&"
+    BITWISE_OR = "|"
+    BITWISE_XOR = "#"
+    BITWISE_SHIFT_LEFT = "<<"
+    BITWISE_SHIFT_RIGHT = ">>"
+    
+    # String operators
+    CONCAT = "||"
+    
 class JoinType(StrEnum):
+    """SQL JOIN types."""
+
     INNER = "INNER"
     LEFT = "LEFT"
     RIGHT = "RIGHT"
     FULL = "FULL OUTER"
     CROSS = "CROSS"
     NATURAL = "NATURAL"
+
+class Order(StrEnum):
+    """SQL ORDER BY directions."""
+
+    ASC = "ASC"
+    DESC = "DESC"

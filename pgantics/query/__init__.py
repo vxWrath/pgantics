@@ -1,2 +1,2 @@
-from .expression import *
+from ..entities.expression import *
 from .select import *
