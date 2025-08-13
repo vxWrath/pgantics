@@ -11,6 +11,7 @@ from typing import (
     overload,
 )
 
+from ..entities.column import ColumnInfo
 from ..entities.expression import BaseExpression, Expression, OrderExpression
 from ..enums import JoinType
 from ..registry import TABLE_REGISTRY
@@ -26,7 +27,7 @@ class Select(Query):
     
     def __init__(self, table: Type['Table']):
         self.table = table
-        self._select_columns: List[Union[str, BaseExpression]] = []
+        self._select_columns: List[BaseExpression] = []
         self._joins: List['Join'] = []
         self._where_conditions: List[BaseExpression] = []
         self._order_by_expressions: List[OrderExpression] = []
@@ -58,13 +59,8 @@ class Select(Query):
         if self._select_columns:
             column_sqls = []
             for col in self._select_columns:
-                if isinstance(col, str):
-                    # Handle string column names
-                    if '.' in col:
-                        column_sqls.append(col)
-                    else:
-                        # Assume it's a column from the main table
-                        column_sqls.append(f"{self.table.Meta.table_name}.{col}")
+                if isinstance(col, ColumnInfo):
+                    column_sqls.append(str(col))
                 elif isinstance(col, BaseExpression):
                     col_sql, col_params = col.build()
 
@@ -148,7 +144,22 @@ class Select(Query):
             User.select('id', 'name', User.email, func.Count())
         ```
         """
-        self._select_columns.extend(columns)
+        for col in columns:
+            if isinstance(col, str):
+                # Handle string column names
+                if '.' in col:
+                    table_name, column = col.split('.', 1)
+                    table = TABLE_REGISTRY.get(table_name)
+                else:
+                    table = self.table
+                    column = col
+
+                if column not in table.__pgantics_fields__:
+                    raise ValueError(f"Column '{column}' does not exist in table '{table.Meta.table_name}'")
+                col = table.__pgantics_fields__[column]
+
+            self._select_columns.append(col)
+
         return self
 
     def distinct(self) -> Self:
@@ -351,6 +362,4 @@ class Join:
         ```
         """
         self.on_condition = condition
-        self.select_query._joins.append(self)
-
         return self.select_query
