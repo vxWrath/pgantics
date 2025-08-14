@@ -1,6 +1,6 @@
 import datetime
 
-from pgantics import Column, Mapped, Table, format_build, funcs, types
+from pgantics import Column, Mapped, Table, types
 
 
 # Define test tables
@@ -36,14 +36,14 @@ class Profile(Table):
     bio: Mapped[str] = Column(types.Text())
     avatar_url: Mapped[str] = Column(types.VarChar(255))
 
-# Basic query
-print(User.select(User.id, User.email).where(User.age > 18).build())
-print()
+user = User(
+    id = 123,
+    email="user@example.com",
+    first_name="John",
+    last_name="Doe",
+    age=30,
+    created_at=datetime.datetime.now(),
+    salary=50000.0
+)
 
-# Complex join with conditions
-print(User.select(User.email, Post.title)
- .join(Post).on(Post.user_id == User.id)
- .where((User.age > 21) & (Post.views > 100))
- .order_by(User.created_at.desc())
- .limit(10).build())
-print()
+print(user.insert().returning('id').build())

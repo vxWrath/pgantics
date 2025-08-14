@@ -12,6 +12,7 @@ from typing import (
 from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass
 
+from ..query.insert import Insert
 from ..query.select import Select
 from ..registry import TABLE_REGISTRY
 from .column import ColumnInfo
@@ -96,7 +97,7 @@ class Table(BaseModel, metaclass=TableMeta):
     ```
     """
 
-    __pgantics_fields__: Dict[str, ColumnInfo[Any]]
+    __pgantics_fields__: Dict[str, ColumnInfo]
 
     def __init_subclass__(cls, **kwargs: Any):
         super().__init_subclass__(**kwargs)
@@ -126,4 +127,10 @@ class Table(BaseModel, metaclass=TableMeta):
     def select(cls, *columns: Union[str, BaseExpression]) -> Select:
         query = Select(cls)
         query.select(*columns)
+        return query
+
+    def insert(self, *columns: Union[str, ColumnInfo]) -> Insert:
+        query = Insert(self)
+        query.insert(*columns)
+
         return query

@@ -24,7 +24,7 @@ class pganticsFieldInfo(FieldInfo):
         else:
             super().__init__(default=default, **kwargs)
 
-class ColumnInfo[T](pganticsFieldInfo, Expression):
+class ColumnInfo(pganticsFieldInfo, Expression):
     def __init__(self, *,
         type: Union[Type[PostgresType], PostgresType]=MISSING,
         primary_key: bool = False,

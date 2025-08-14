@@ -17,7 +17,7 @@ class Mapped[V]:
     """
 
     @overload
-    def __get__(self, instance: None, owner: Type[Any]) -> 'ColumnInfo[V]':
+    def __get__(self, instance: None, owner: Type[Any]) -> 'ColumnInfo':
         ...
 
     @overload
