@@ -4,7 +4,9 @@ __all__ = [
     "Operator",
     "BinaryOperator",
     "JoinType",
-    "Order"
+    "Order",
+    "Action",
+    "ConflictAction"
 ]
 
 class Operator(StrEnum):
@@ -64,3 +66,18 @@ class Order(StrEnum):
 
     ASC = "ASC"
     DESC = "DESC"
+
+class Action(StrEnum):
+    """Enum for defining actions in foreign key constraints."""
+
+    NO_ACTION = "NO ACTION"
+    RESTRICT = "RESTRICT"
+    CASCADE = "CASCADE"
+    SET_NULL = "SET NULL"
+    SET_DEFAULT = "SET DEFAULT"
+
+class ConflictAction(StrEnum):
+    """Enum for defining actions in ON CONFLICT clauses."""
+
+    DO_NOTHING = "DO NOTHING"
+    DO_UPDATE = "DO UPDATE"

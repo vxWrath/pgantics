@@ -168,7 +168,7 @@ class Select(Query):
         return self
 
     @overload
-    def join(self, table: Union[Type['Table'], str], join_type: JoinType = JoinType.INNER) -> 'Join':
+    def join(self, table: Union[Type['Table'], str], join_type: JoinType = JoinType.INNER) -> 'Join[Self]':
         """Start building an INNER JOIN."""
         ...
 
@@ -324,10 +324,10 @@ class Select(Query):
         return self
 
 
-class Join:
+class Join[Q: Select]:
     """Represents a JOIN clause in a SELECT query."""
-    
-    def __init__(self, select_query: Select, table: Type['Table'], join_type: JoinType):
+
+    def __init__(self, select_query: Q, table: Type['Table'], join_type: JoinType):
         self.select_query = select_query
         self.table = table
         self.join_type = join_type
@@ -347,7 +347,7 @@ class Join:
         sql = f"{self.join_type.value} JOIN {self.table.Meta.table_name} ON {condition_sql}"
         return sql, params
 
-    def on(self, condition: BaseExpression) -> Select:
+    def on(self, condition: BaseExpression) -> Q:
         """Specify the JOIN condition.
         
         Args:

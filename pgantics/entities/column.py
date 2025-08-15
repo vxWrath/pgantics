@@ -47,6 +47,9 @@ class ColumnInfo(pganticsFieldInfo, Expression):
     def __str__(self) -> str:
         return f"{self._source_table.Meta.table_name}.{self._source_field}"
 
+    def __hash__(self) -> int:
+        return hash((self._source_table.Meta.table_name, self._source_field))
+
 def Column(
     type: Union[Type[PostgresType], PostgresType]=MISSING,
     /, *,

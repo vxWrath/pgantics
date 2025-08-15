@@ -1,6 +1,6 @@
 import datetime
 
-from pgantics import Column, Mapped, Table, types
+from pgantics import Column, Mapped, Table, format_build, types
 
 
 # Define test tables
@@ -46,4 +46,5 @@ user = User(
     salary=50000.0
 )
 
-print(user.insert().returning('id').build())
+b = user.insert().on_conflict(User.email).do_update({User.first_name: "Jane"}).build()
+print(format_build(*b))
