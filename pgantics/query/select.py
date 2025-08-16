@@ -28,7 +28,7 @@ class Select(Query):
     def __init__(self, table: Type['Table']):
         self.table = table
         self._select_columns: List[BaseExpression] = []
-        self._joins: List['Join'] = []
+        self._joins: List['SelectJoin[Self]'] = []
         self._where_conditions: List[BaseExpression] = []
         self._order_by_expressions: List[OrderExpression] = []
         self._limit_value: Optional[int] = None
@@ -168,7 +168,7 @@ class Select(Query):
         return self
 
     @overload
-    def join(self, table: Union[Type['Table'], str], join_type: JoinType = JoinType.INNER) -> 'Join[Self]':
+    def join(self, table: Union[Type['Table'], str], join_type: JoinType = JoinType.INNER) -> 'SelectJoin[Self]':
         """Start building an INNER JOIN."""
         ...
 
@@ -177,7 +177,7 @@ class Select(Query):
         """Start building a JOIN with specified type."""
         ...
 
-    def join(self, table: Union[Type['Table'], str], join_type: JoinType = JoinType.INNER) -> Union['Join', Self]:
+    def join(self, table: Union[Type['Table'], str], join_type: JoinType = JoinType.INNER) -> Union['SelectJoin[Self]', Self]:
         """Start building a JOIN clause.
         
         Args:
@@ -197,7 +197,7 @@ class Select(Query):
         if isinstance(table, str):
             table = TABLE_REGISTRY.get(table)
 
-        join = Join(self, table, join_type)
+        join = SelectJoin(self, table, join_type)
         self._joins.append(join)
 
         if join_type in (JoinType.NATURAL, JoinType.CROSS):
@@ -322,13 +322,11 @@ class Select(Query):
         """Convert query to COUNT(*) query."""
         self._select_columns = [Expression("COUNT(*)")]
         return self
+    
+class SelectJoin[Q: Select]:
+    def __init__(self, query: Q, table: Type['Table'], join_type: JoinType):
+        self.query = query
 
-
-class Join[Q: Select]:
-    """Represents a JOIN clause in a SELECT query."""
-
-    def __init__(self, select_query: Q, table: Type['Table'], join_type: JoinType):
-        self.select_query = select_query
         self.table = table
         self.join_type = join_type
         self.on_condition: Optional[BaseExpression] = None
@@ -354,12 +352,13 @@ class Join[Q: Select]:
             condition: Boolean expression for the join condition
             
         Returns:
-            The original Select query for method chaining
+            The original query for method chaining
             
         Example:
         ```
             User.select().join(Post).on(Post.user_id == User.id)
+            User.select().join(Post).on((Post.user_id == User.id) & (Post.status == 'inactive'))
         ```
         """
         self.on_condition = condition
-        return self.select_query
+        return self.query

@@ -1,3 +1,4 @@
+import warnings
 from typing import (
     Any,
     Dict,
@@ -12,6 +13,7 @@ from typing import (
 from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass
 
+from ..query.delete import Delete
 from ..query.insert import Insert
 from ..query.select import Select
 from ..registry import TABLE_REGISTRY
@@ -125,12 +127,84 @@ class Table(BaseModel, metaclass=TableMeta):
 
     @classmethod
     def select(cls, *columns: Union[str, BaseExpression]) -> Select:
+        """Create a SELECT query for this table.
+        
+        Example:
+        ```
+            # Simple select
+            user = User.select().where(User.id == 1)
+
+            # Select with JOIN
+            user = User.select().join(Post).on(Post.user_id == User.id).where(Post.views < 10)
+
+            # Select with ORDER BY
+            user = User.select().order_by(User.created_at.desc()).limit(10)
+
+            # Full basic example
+            sql, params = User.select().where(User.id == 1).build()
+            await database.fetch_one(sql, params)
+
+            sql, params = User.select().where(User.id < 10).build()
+            await database.fetch_many(sql, params)
+        ```
+        """
         query = Select(cls)
         query.select(*columns)
         return query
 
     def insert(self, *columns: Union[str, ColumnInfo]) -> Insert:
+        """Create an INSERT query for this table. This is a instance method.
+
+        Example:
+        ```
+            # Simple insert
+            user.insert() # all columns
+            user.insert(User.id, "email")
+
+            # Insert with RETURNING
+            user = user.insert().returning(User.id, 'email')
+
+            # Insert with nested select query
+            user.insert('email', 'name', 'created_at').from_select(
+                LegacyUser.select('email_address', 'full_name', 'signup_date')
+                .where(LegacyUser.active == True)
+            )
+
+            # Full basic example
+            sql, params = user.insert().returning(User.id, 'email').build()
+            await database.execute(sql, params)
+        ```
+        """
+        if not isinstance(self, Table):
+            warnings.warn(
+                f"{self.__name__}.insert() called as a class method. "
+                f"insert() should be called on an instance instead.",
+                stacklevel=2,
+            )
+
         query = Insert(self)
         query.insert(*columns)
 
         return query
+    
+    @classmethod
+    def delete(cls) -> Delete:
+        """Create a DELETE query for this table.
+        
+        Example:
+        ```
+            # Simple delete
+            User.delete().where(User.age < 18)
+            
+            # Delete with JOIN
+            User.delete().join(Post).on(Post.user_id == User.id).where(Post.views < 10)
+            
+            # Delete with RETURNING
+            deleted_users = User.delete().where(User.active == False).returning('id', 'email')
+
+            # Full basic example
+            sql, params = deleted_users.build()
+            await database.execute(sql, params)
+        ```
+        """
+        return Delete(cls)

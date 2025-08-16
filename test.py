@@ -46,5 +46,6 @@ user = User(
     salary=50000.0
 )
 
-b = user.insert().on_conflict(User.email).do_update({User.first_name: "Jane"}).build()
+b = Post.delete().join(User).on(Post.user_id == User.id).join(Profile).on(Profile.user_id == User.id).where(User.age < 18).where(Profile.bio.is_null()).build()
 print(format_build(*b))
+#print(b)
