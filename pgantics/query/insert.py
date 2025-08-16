@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from ..entities.table import Table
     from .select import Select
 
-__all__ = ["Insert"]
+__all__ = ["Insert", "BulkInsert"]
 
 class Insert(Query):
     """SQL INSERT query builder focused on Pydantic model instances."""
@@ -31,6 +31,7 @@ class Insert(Query):
         self.table = table
         
         self._columns: Optional[List[str]] = None  # None means all columns
+        self._overrides: Dict[str, Any] = {}  # Manual overrides for specific columns
 
         self._returning: Optional[List[str]] = None
         self._on_conflict_target: Optional[List[str]] = None
@@ -42,18 +43,16 @@ class Insert(Query):
         """Build the complete SQL INSERT statement."""
         params = []
         
-        # Get data from the first instance to determine columns
         if self._columns:
             # Only include specified columns
-            first_dump = self.table.model_dump(mode='json', include=set(self._columns))
-            columns = self._columns
+            model_data = self.table.model_dump(mode='json', include=set(self._columns))
         else:
             # Include all columns from the model
-            first_dump = self.table.model_dump(mode='json')
-            # Filter to only include columns that are actually database columns
-            columns = [col for col in first_dump.keys() if col in self.table.__pgantics_fields__]
-            first_dump = {col: first_dump[col] for col in columns}
-        
+            model_data = self.table.model_dump(mode='json')
+
+        model_data.update(self._overrides)
+        columns = [col for col in model_data.keys() if col in self.table.__pgantics_fields__]
+
         if not columns:
             raise ValueError("No valid database columns found to insert")
 
@@ -123,6 +122,8 @@ class Insert(Query):
             dump = table.model_dump(mode='json')
             dump = {col: dump[col] for col in columns if col in dump}
 
+        dump.update(self._overrides)
+
         # Ensure we have values for all columns in the right order
         return [[dump.get(col) for col in columns]]
 
@@ -130,7 +131,7 @@ class Insert(Query):
         """Specify columns to insert.
 
         Args:
-            *columns: Column names (strings) or expressions to insert
+            *columns: Column names (strings) or ColumnInfo objects to update
 
         Example:
         ```
@@ -159,6 +160,37 @@ class Insert(Query):
                 col = table.__pgantics_fields__[column]
 
             self._columns.append(str(col))
+
+        return self
+
+    def override(self, updates: Dict[Union[str, ColumnInfo], Any]) -> Self:
+        """Override specific columns with new values.
+
+        Args:
+            updates: Dictionary of column names or ColumnInfo objects to their new values
+
+        Example:
+        ```
+            user.insert().override({'email': 'new@example.com', 'updated_at': funcs.Now()}) # inserts all columns, but overrides email and updated at
+            user.insert(User.id, "email").override({User.last_login: funcs.Now()})
+        ```
+        """
+
+        for key, val in updates.items():
+            if isinstance(key, ColumnInfo):
+                column_name = key._source_field
+            elif isinstance(key, str):
+                if '.' in key:
+                    _, column_name = key.split('.', 1)
+                else:
+                    column_name = key
+            else:
+                raise TypeError(f"Expected string or ColumnInfo key, got {type(key).__name__}")
+
+            if column_name not in self.table.__pgantics_fields__:
+                raise ValueError(f"Column '{column_name}' does not exist in table '{self.table.Meta.table_name}'")
+
+            self._overrides[column_name] = val
 
         return self
 

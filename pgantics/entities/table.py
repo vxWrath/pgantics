@@ -2,7 +2,9 @@ import warnings
 from typing import (
     Any,
     Dict,
+    List,
     Optional,
+    Self,
     Tuple,
     Union,
     get_args,
@@ -14,8 +16,9 @@ from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass
 
 from ..query.delete import Delete
-from ..query.insert import Insert
+from ..query.insert import BulkInsert, Insert
 from ..query.select import Select
+from ..query.update import Update
 from ..registry import TABLE_REGISTRY
 from .column import ColumnInfo
 from .expression import BaseExpression
@@ -208,3 +211,68 @@ class Table(BaseModel, metaclass=TableMeta):
         ```
         """
         return Delete(cls)
+
+    def update(self, *columns: Union[str, ColumnInfo]) -> Update:
+        """Create an UPDATE query for this table.
+
+        Example:
+        ```
+            # Simple update
+            user = User(id=1, email="new@example.com", age=25)
+            user.update()  # Updates all non-primary key columns
+            user.update('email', 'age')  # Only update specific columns
+
+            # Update with WHERE clause
+            user.update().where(User.id == 1)
+
+            # Update with JOIN
+            user.update().join(Profile).on(Profile.user_id == User.id).where(Profile.verified == True)
+
+            # Update with manual overrides
+            user.update().override({User.updated_at: funcs.Now(), 'active': True})
+
+            # Update with RETURNING
+            updated_user = user.update().where(User.id == 1).returning() # returns all
+
+            # Full basic example
+            sql, params = user.update().where(User.id == 1).build()
+            await database.execute(sql, params)
+        ```
+        """
+
+        if not isinstance(self, Table):
+            warnings.warn(
+                f"{self.__name__}.update() called as a class method. "
+                f"update() should be called on an instance instead.",
+                stacklevel=2,
+            )
+
+        query = Update(self)
+        query.update(*columns)
+
+        return query
+    
+    @classmethod
+    def bulk_insert(cls, rows: List[Self], *columns: Union[str, ColumnInfo]) -> BulkInsert:
+        """Create a bulk INSERT query for this table.
+
+        Example:
+        ```
+            # Bulk insert multiple rows
+            users = [
+                User(id=1, email="user1@example.com"),
+                User(id=2, email="user2@example.com"),
+                User(id=3, email="user3@example.com"),
+            ]
+
+            query = User.bulk_insert(users, User.id, "email")
+            # OR
+            query = User.bulk_insert(users).insert(User.id, "email")
+
+            # All columns
+            query = User.bulk_insert(users)
+        ```
+        """
+        query = BulkInsert(rows)
+        query.insert(*columns)
+        return query
