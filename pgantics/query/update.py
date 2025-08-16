@@ -36,6 +36,7 @@ class Update(Query):
             
         model_data.update(self._overrides)
         
+        
         if not model_data:
             raise ValueError("No columns found to update")
 
@@ -74,7 +75,7 @@ class Update(Query):
             sql_parts.append(f"WHERE {' AND '.join(where_sqls)}")
         else:
             # Safety check - require WHERE clause to prevent accidental full table update
-            raise ValueError("UPDATE query must include a WHERE clause. Use update_all() for intentional full table update.")
+            raise ValueError("UPDATE query must include a WHERE clause. If you want to update a full table, use .where(pgantics.literal(True))")
         
         # RETURNING clause
         if self._returning:
@@ -117,7 +118,7 @@ class Update(Query):
                     raise ValueError(f"Column '{column}' does not exist in table '{table.Meta.table_name}'")
                 col = table.__pgantics_fields__[column]
 
-            self._columns.append(str(col))
+            self._columns.append(col._source_field)
 
         return self
     

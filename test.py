@@ -1,6 +1,6 @@
 import datetime
 
-from pgantics import Column, Mapped, Table, format_query, types
+from pgantics import Column, Mapped, Table, format_query, funcs, types
 
 
 # Define test tables
@@ -14,7 +14,9 @@ class User(Table):
     last_name: Mapped[str] = Column(types.VarChar(50))
     age: Mapped[int] = Column(types.Integer())
     created_at: Mapped[datetime.datetime] = Column(types.TimestampTZ())
+    updated_at: Mapped[datetime.datetime] = Column(types.TimestampTZ())
     salary: Mapped[float] = Column(types.Real())
+    active: Mapped[bool] = Column(types.Boolean())
 
 class Post(Table):
     class Meta:
@@ -35,35 +37,44 @@ class Profile(Table):
     user_id: Mapped[int] = Column(types.BigInt())
     bio: Mapped[str] = Column(types.Text())
     avatar_url: Mapped[str] = Column(types.VarChar(255))
+    verified: Mapped[bool] = Column(types.Boolean())
 
 user = User(
-    id = 123,
-    email="user@example.com",
+    id=123,
+    email="newemail@example.com",
     first_name="John",
     last_name="Doe",
-    age=30,
+    age=31,
     created_at=datetime.datetime.now(),
-    salary=50000.0
+    updated_at=datetime.datetime.now(),
+    salary=55000.0,
+    active=True
 )
 
-query = Post.delete().join(User).on(Post.user_id == User.id).join(Profile).on(Profile.user_id == User.id).where(User.age < 18).where(Profile.bio.is_null())
-
-print("Complex DELETE with multiple JOINs:")
-print(format_query(query))
+print("1. Simple UPDATE (all non-primary key columns):")
+simple_update = user.update().where(User.id == 123)
+print(format_query(simple_update))
 print()
 
-# More examples:
-print("Simple DELETE:")
-simple = User.delete().where(User.age < 18)
-print(format_query(simple))
+print("2. UPDATE specific columns only:")
+specific_update = user.update('email', 'age').where(User.id == 123)
+print(format_query(specific_update))
 print()
 
-print("DELETE with single JOIN:")
-single_join = Post.delete().join(User).on(Post.user_id == User.id).where(User.age < 18)
-print(format_query(single_join))
+print("3. UPDATE with manual SET values:")
+manual_update = user.update('email').override({
+    'updated_at': funcs.Now(),
+    'age': User.age + 1
+}).where(User.id == 123)
+print(format_query(manual_update))
 print()
 
-print("DELETE with RETURNING:")
-with_returning = User.delete().where(User.email.like('%@spam.com')).returning('id', 'email')
-print(format_query(with_returning))
+print("4. UPDATE with JOIN:")
+join_update = user.update().join(Profile).on(Profile.user_id == User.id).where(Profile.verified == True)
+print(format_query(join_update))
+print()
+
+print("5. UPDATE with RETURNING:")
+returning_update = user.update().where(User.id == 123).returning('id', 'email', 'updated_at')
+print(format_query(returning_update))
 print()
