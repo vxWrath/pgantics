@@ -1,8 +1,11 @@
-from typing import Any, List
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .query.base import Query
 
 __all__ = [
     "MISSING",
-    "format_build"
+    "format_query"
 ]
 
 class __Missing:
@@ -22,10 +25,12 @@ class __Missing:
     
 MISSING: Any = __Missing()
 
-def format_build(sql: str, params: List[Any], /) -> str:
+def format_query(query: 'Query', /) -> str:
     """
     Format SQL query with parameters for display. This is NOT meant to be used for actual query execution.
     """
+    sql, params = query.build()
+
     for param in params:
         sql = sql.replace("%s", repr(param), 1)
     return sql

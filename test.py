@@ -1,6 +1,6 @@
 import datetime
 
-from pgantics import Column, Mapped, Table, format_build, types
+from pgantics import Column, Mapped, Table, format_query, types
 
 
 # Define test tables
@@ -46,6 +46,24 @@ user = User(
     salary=50000.0
 )
 
-b = Post.delete().join(User).on(Post.user_id == User.id).join(Profile).on(Profile.user_id == User.id).where(User.age < 18).where(Profile.bio.is_null()).build()
-print(format_build(*b))
-#print(b)
+query = Post.delete().join(User).on(Post.user_id == User.id).join(Profile).on(Profile.user_id == User.id).where(User.age < 18).where(Profile.bio.is_null())
+
+print("Complex DELETE with multiple JOINs:")
+print(format_query(query))
+print()
+
+# More examples:
+print("Simple DELETE:")
+simple = User.delete().where(User.age < 18)
+print(format_query(simple))
+print()
+
+print("DELETE with single JOIN:")
+single_join = Post.delete().join(User).on(Post.user_id == User.id).where(User.age < 18)
+print(format_query(single_join))
+print()
+
+print("DELETE with RETURNING:")
+with_returning = User.delete().where(User.email.like('%@spam.com')).returning('id', 'email')
+print(format_query(with_returning))
+print()

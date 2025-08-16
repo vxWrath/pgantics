@@ -36,9 +36,17 @@ class Delete(Query):
         
         # DELETE FROM clause
         if self._joins:
-            # DELETE with JOINs - specify which table to delete from
+            # DELETE with JOINs using USING clause
             sql_parts.append(f"DELETE FROM {self.table.Meta.table_name}")
-            sql_parts.append(f"USING {', '.join(join.table.Meta.table_name for join in self._joins)}")
+            
+            # Add USING clause with all joined tables
+            using_tables = [join.table.Meta.table_name for join in self._joins]
+            sql_parts.append(f"USING {', '.join(using_tables)}")
+            
+            # Add all JOIN conditions to WHERE clause
+            for join in self._joins:
+                if join.on_condition:
+                    self._where_conditions.append(join.on_condition)
         else:
             # Simple DELETE
             sql_parts.append(f"DELETE FROM {self.table.Meta.table_name}")
@@ -69,7 +77,6 @@ class Delete(Query):
         
         Args:
             table: The table to join
-            join_type: Type of join (INNER, LEFT, etc.)
             
         Returns:
             Join object for chaining .on() condition
@@ -77,7 +84,7 @@ class Delete(Query):
         Example:
         ```
             # Delete users who have no posts
-            User.delete().join(Post, JoinType.LEFT).on(Post.user_id == User.id).where(Post.id.is_null())
+            User.delete().join(Post).on(Post.user_id == User.id).where(Post.id.is_null())
             
             # Delete posts from inactive users
             Post.delete().join(User).on(Post.user_id == User.id).where(User.active == False)
@@ -106,6 +113,22 @@ class Delete(Query):
         ```
         """
         self._where_conditions.append(condition)
+        return self
+    
+    def delete_all(self) -> Self:
+        """Allow deletion of all rows in the table without WHERE clause.
+        
+        This is a safety method to explicitly allow full table deletion.
+        
+        Example:
+        ```
+            # Dangerous - deletes all users!
+            User.delete().delete_all()
+        ```
+        """
+        # Override the WHERE clause requirement by adding a always-true condition
+        from ..entities.expression import LiteralExpression
+        self._where_conditions.append(LiteralExpression(True))
         return self
     
     def returning(self, *columns: Union[str, ColumnInfo]) -> Self:
@@ -150,6 +173,7 @@ class DeleteJoin[Q: Delete]:
     def __init__(self, query: Q, table: Type['Table']):
         self.query = query
         self.table = table
+        self.on_condition: Optional[BaseExpression] = None
 
     def on(self, condition: BaseExpression) -> Q:
         """Specify the JOIN condition.
@@ -166,5 +190,5 @@ class DeleteJoin[Q: Delete]:
             User.delete().join(Post).on((Post.user_id == User.id) & (Post.status == 'inactive'))
         ```
         """
-        self.query._where_conditions.append(condition)
+        self.on_condition = condition
         return self.query
