@@ -19,6 +19,7 @@ from..enums import ConflictAction
 
 if TYPE_CHECKING:
     from ..entities.table import Table
+    from .select import Select
 
 __all__ = ["Insert"]
 
@@ -32,9 +33,10 @@ class Insert(Query):
         self._columns: Optional[List[str]] = None  # None means all columns
 
         self._returning: Optional[List[str]] = None
-        self._on_conflict_target: Optional[Union[str, List[str]]] = None
+        self._on_conflict_target: Optional[List[str]] = None
         self._on_conflict_action: Optional[ConflictAction] = None
         self._on_conflict_update: Optional[Dict[str, Any]] = None
+        self._select_query: Optional['Select'] = None
 
     def build(self) -> Tuple[str, List[Any]]:
         """Build the complete SQL INSERT statement."""
@@ -61,27 +63,29 @@ class Insert(Query):
             f"({', '.join(columns)})"
         ]
 
-        values = self._build_values(self.table, columns)
-        
-        # Handle single vs multiple rows
-        if len(values) == 1:
-            placeholders = ', '.join(['%s'] * len(columns))
-            sql_parts.append(f"VALUES ({placeholders})")
-            params.extend(values[0])
+        if self._select_query:
+            select_sql, select_params = self._select_query.build()
+            sql_parts.append(select_sql)  # No VALUES keyword needed
+            params.extend(select_params)
         else:
-            value_groups = []
-            for row_values in values:
-                placeholders = ', '.join(['%s'] * len(row_values))
-                value_groups.append(f"({placeholders})")
-                params.extend(row_values)
-            sql_parts.append(f"VALUES {', '.join(value_groups)}")
+            values = self._build_values(self.table, columns)
+        
+            # Handle single vs multiple rows
+            if len(values) == 1:
+                placeholders = ', '.join(['%s'] * len(columns))
+                sql_parts.append(f"VALUES ({placeholders})")
+                params.extend(values[0])
+            else:
+                value_groups = []
+                for row_values in values:
+                    placeholders = ', '.join(['%s'] * len(row_values))
+                    value_groups.append(f"({placeholders})")
+                    params.extend(row_values)
+                sql_parts.append(f"VALUES {', '.join(value_groups)}")
 
         # ON CONFLICT clause
         if self._on_conflict_target is not None:
-            if isinstance(self._on_conflict_target, str):
-                conflict_target = self._on_conflict_target
-            else:
-                conflict_target = f"({', '.join(self._on_conflict_target)})"
+            conflict_target = f"({', '.join(self._on_conflict_target)})"
             
             sql_parts.append(f"ON CONFLICT {conflict_target}")
             
@@ -158,13 +162,13 @@ class Insert(Query):
 
         return self
 
-    def on_conflict(self, target: Union[str, ColumnInfo, Iterable[Union[str, ColumnInfo]]]) -> 'OnConflict[Self]':
+    def on_conflict(self, targets: Union[str, ColumnInfo, Iterable[Union[str, ColumnInfo]]]) -> 'OnConflict[Self]':
         """Add ON CONFLICT clause."""
-        if not isinstance(target, Iterable):
-            target = [target]
+        if not isinstance(targets, Iterable):
+            targets = [targets]
 
         correct_targets: List[str] = []
-        for target_item in target:
+        for target_item in targets:
             if isinstance(target_item, str):
                 if '.' in target_item:
                     table_name, column = target_item.split('.', 1)
@@ -176,7 +180,8 @@ class Insert(Query):
                 if column not in table.__pgantics_fields__:
                     raise ValueError(f"Column '{column}' does not exist in table '{table.Meta.table_name}'")
                 target_item = table.__pgantics_fields__[column]
-                correct_targets.append(str(target_item))
+
+            correct_targets.append(target_item._source_field)
 
         return OnConflict(self, correct_targets)
 
@@ -208,6 +213,35 @@ class Insert(Query):
 
         return self
     
+    def from_select(self, query: 'Select') -> Self:
+        """Specifies a SELECT query as the source for an INSERT statement, rather than the pydantic model dump.
+        
+        Example:
+        ```
+            # Simple SELECT insert
+            User.insert('email', 'name', 'created_at').from_select(
+                LegacyUser.select('email_address', 'full_name', 'signup_date')
+                .where(LegacyUser.active == True)
+            )
+
+            # With ON CONFLICT (works with both patterns)
+            User.insert('email', 'name').from_select(
+                ImportedUser.select('email', 'name')
+            ).on_conflict('email').do_update({'name': 'EXCLUDED.name'})
+
+            # Mixed with expressions in SELECT
+            User.insert('email', 'name', 'created_at').from_select(
+                LegacyUser.select(
+                    'email_address',
+                    funcs.Concat(LegacyUser.first_name, ' ', LegacyUser.last_name),
+                    funcs.Now()
+                )
+            )
+        ```    
+        """
+        self._select_query = query
+        return self
+
 class BulkInsert[B: 'Table'](Insert):
     """Alias for Insert to indicate bulk insert usage."""
     def __init__(self, tables: Iterable[B]):
@@ -229,9 +263,12 @@ class BulkInsert[B: 'Table'](Insert):
             values.extend(table_values)
 
         return values
-    
+
+    def from_select(self, query: 'Select') -> Self:
+        raise NotImplementedError("BulkInsert does not support from_select method")
+
 class OnConflict[Q: Insert]:
-    def __init__(self, query: Q, target: Union[str, List[str]]):
+    def __init__(self, query: Q, target: List[str]):
         self.query = query
         self.target = target
 

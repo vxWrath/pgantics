@@ -42,7 +42,7 @@ class Expression(BaseExpression):
         """Create an aliased version of this expression."""
         return Alias(self, alias)
 
-    # Arithmetic operators
+    # Math
     def __add__(self, other) -> 'BinaryExpression':
         return BinaryExpression(self, BinaryOperator.ADD, to_expression(other))
 
@@ -61,7 +61,7 @@ class Expression(BaseExpression):
     def __pow__(self, other) -> 'BinaryExpression':
         return BinaryExpression(self, BinaryOperator.POWER, to_expression(other))
     
-    # Reverse arithmetic operators
+    # Reverse math
     def __radd__(self, other) -> 'BinaryExpression':
         return BinaryExpression(to_expression(other), BinaryOperator.ADD, self)
     
@@ -80,7 +80,7 @@ class Expression(BaseExpression):
     def __rpow__(self, other) -> 'BinaryExpression':
         return BinaryExpression(to_expression(other), BinaryOperator.POWER, self)
     
-    # Comparison operators
+    # Comparison
     def __eq__(self, other: Any) -> 'Condition':
         return Condition(self, Operator.EQ, to_expression(other))
     
@@ -99,7 +99,7 @@ class Expression(BaseExpression):
     def __ge__(self, other: Any) -> 'Condition':
         return Condition(self, Operator.GTE, to_expression(other))
 
-    # SQL-specific methods
+    # SQL methods
     def in_(self, values: Union[Sequence[Any], 'BaseExpression']) -> 'Condition':
         """IN operator - check if expression value is in a list of values."""
         if isinstance(values, BaseExpression):
